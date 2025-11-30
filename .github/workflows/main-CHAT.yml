@@ -1,0 +1,33 @@
+name: cHAT RDP Runner
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rdp:
+    runs-on: windows-latest
+
+    steps:
+      - name: Install Tailscale
+        shell: powershell
+        run: |
+          Invoke-WebRequest https://pkgs.tailscale.com/stable/tailscale-setup-latest.exe -OutFile tailscale-installer.exe
+          Start-Process .\tailscale-installer.exe -ArgumentList "/S" -Wait
+
+      - name: Connect to Tailscale
+        shell: powershell
+        run: |
+          tailscale up --authkey ${{ secrets.TS_AUTHKEY }} --hostname github-runner
+
+      - name: Show Tailscale IP
+        shell: powershell
+        run: tailscale ip
+
+      - name: Enable RDP
+        shell: powershell
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+          Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+
+      - name: Keep runner alive
+        run: powershell -command "Start-Sleep -Seconds 86400"
